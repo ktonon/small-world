@@ -30,7 +30,7 @@ const MIN_DIST = 1.2;
 		video.requestVideoFrameCallback(frame);
 
 	} else {
-		globe.set_image(await loadImage('../images/age.2020.1.GTS2012.png'));
+		globe.set_image(await loadImage('../media/age.2020.1.GTS2012.png'));
 		function frame() {
 			resizeCanvasToDisplaySize(canvas);
 			globe.render();
