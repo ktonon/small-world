@@ -17,5 +17,17 @@ git lfs pull
 Run:
 
 ```
+cd model
 cargo run --bin nc_to_png
 ```
+
+## Using the Viewer
+
+Run:
+
+```
+./scripts/build.sh
+./scripts/serve.sh
+```
+
+and visit http://localhost:8080/www

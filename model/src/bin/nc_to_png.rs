@@ -1,12 +1,12 @@
-use image::{Rgb, RgbImage};
+use image::{imageops::FilterType, Rgb, RgbImage};
 use netcdf3::FileReader;
 use std::error::Error;
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let nc_path = Path::new("./data/age.2020.1.GTS2012.1m.classic.nc");
+    let nc_path = Path::new("../data/age.2020.1.GTS2012.1m.classic.nc");
     let var_name = "z";
-    let png_out = Path::new("images/age.2020.1.GTS2012.png");
+    let png_out = Path::new("../images/age.2020.1.GTS2012.png");
 
     // Open + read metadata
     let mut reader = FileReader::open(nc_path)?;
@@ -61,7 +61,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     std::fs::create_dir_all(png_out.parent().unwrap())?;
-    img.save(png_out)?;
+
+    let resized = image::imageops::resize(&img, 8192, 4096, FilterType::Lanczos3);
+    resized.save(png_out)?;
     println!("Saved → {:?}", png_out);
     Ok(())
 }
