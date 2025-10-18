@@ -15,13 +15,29 @@ const MIN_DIST = 1.2;
 	setupControls(canvas, globe);
 	enableTouchGestures(canvas, globe);
 
-	globe.set_image(await loadImage('../images/age.2020.1.GTS2012.png'));
-	function frame() {
-		resizeCanvasToDisplaySize(canvas);
-		globe.render();
+	const useVideo = true;
+	if (useVideo) {
+		const video = document.getElementById("earthVideo");
+		await video.play(); // ensure it’s decoded and running
+
+		globe.set_image_video(video);
+		function frame() {
+			resizeCanvasToDisplaySize(canvas);
+			globe.set_image_video(video); // updates the texture with the current frame
+			globe.render();
+			video.requestVideoFrameCallback(frame);
+		}
+		video.requestVideoFrameCallback(frame);
+
+	} else {
+		globe.set_image(await loadImage('../images/age.2020.1.GTS2012.png'));
+		function frame() {
+			resizeCanvasToDisplaySize(canvas);
+			globe.render();
+			requestAnimationFrame(frame);
+		}
 		requestAnimationFrame(frame);
 	}
-	requestAnimationFrame(frame);
 })();
 
 async function loadImage(url) {
