@@ -19,29 +19,29 @@ async function bootup() {
 	setupControls(canvas, globe);
 	enableTouchGestures(canvas, globe);
 
+	window.addEventListener('resize', () => resizeCanvasToDisplaySize(canvas));
+	resizeCanvasToDisplaySize(canvas);
+
 	const useVideo = false;
 	if (useVideo) {
 		const video = await loadVideo('./earth.mp4');
-		await video.play(); // ensure it’s decoded and running
-
+		await video.play();
 		globe.set_image_video(video);
-		function frame() {
-			resizeCanvasToDisplaySize(canvas);
-			globe.set_image_video(video); // updates the texture with the current frame
-			globe.render();
-			video.requestVideoFrameCallback(frame);
-		}
-		video.requestVideoFrameCallback(frame);
+		renderOnAnimationFrame(globe, () => globe.set_image_video(video));
 
 	} else {
 		globe.set_image(await loadImage('./age.2020.1.GTS2012.png'));
-		function frame() {
-			resizeCanvasToDisplaySize(canvas);
-			globe.render();
-			requestAnimationFrame(frame);
-		}
+		renderOnAnimationFrame(globe);
+	}
+}
+
+function renderOnAnimationFrame(globe: Globe, onFrame?: () => void) {
+	function frame() {
+		onFrame?.();
+		globe.render();
 		requestAnimationFrame(frame);
 	}
+	requestAnimationFrame(frame);
 }
 
 async function loadImage(url: string): Promise<ImageBitmap> {
