@@ -1,12 +1,11 @@
-use image::{imageops::FilterType, Rgb, RgbImage};
+use image::{ImageReader, Rgb, RgbImage};
 use netcdf3::FileReader;
 use rayon::prelude::*;
 use std::error::Error;
 use std::path::Path;
 
-pub fn convert_nc_to_png(nc_path: &Path) -> Result<(), Box<dyn Error>> {
+pub fn convert_nc_to_png(nc_path: &Path) -> Result<RgbImage, Box<dyn Error>> {
     let var_name = "z";
-    let png_out = Path::new("../public/age.2020.1.GTS2012.png");
 
     // Open + read metadata
     let mut reader = FileReader::open(nc_path)?;
@@ -57,11 +56,34 @@ pub fn convert_nc_to_png(nc_path: &Path) -> Result<(), Box<dyn Error>> {
         let y = (i / nx) as u32;
         img.put_pixel(x, (ny as u32 - 1) - y, px);
     }
+    Ok(img)
+}
 
-    std::fs::create_dir_all(png_out.parent().unwrap())?;
+pub fn load_png(png_path: &Path) -> Result<RgbImage, Box<dyn Error>> {
+    let img = ImageReader::open(png_path)?.decode()?.to_rgb8();
+    Ok(img)
+}
 
-    let resized = image::imageops::resize(&img, 8192, 4096, FilterType::Lanczos3);
-    resized.save(png_out)?;
-    println!("Saved → {:?}", png_out);
-    Ok(())
+pub fn combine_images(
+    mut img1: RgbImage,
+    img2: RgbImage,
+    k: f64,
+) -> Result<RgbImage, Box<dyn Error>> {
+    // Ensure same dimensions or handle resizing
+    let (width, height) = img1.dimensions();
+    let (ow, oh) = img2.dimensions();
+
+    for y in 0..height.min(oh) {
+        for x in 0..width.min(ow) {
+            let base_px = img1.get_pixel_mut(x, y);
+            let over_px = img2.get_pixel(x, y);
+
+            // Simple averaging blend
+            for i in 0..3 {
+                base_px.0[i] =
+                    (base_px.0[i] as f64 * k) as u8 + (over_px.0[i] as f64 * (1.0 - k)) as u8;
+            }
+        }
+    }
+    Ok(img1)
 }
