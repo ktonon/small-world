@@ -21,7 +21,7 @@ async function bootup() {
 
 	const useVideo = false;
 	if (useVideo) {
-		const video = document.getElementById('earthVideo') as HTMLVideoElement;
+		const video = await loadVideo('./earth.mp4');
 		await video.play(); // ensure it’s decoded and running
 
 		globe.set_image_video(video);
@@ -44,7 +44,7 @@ async function bootup() {
 	}
 }
 
-async function loadImage(url: string) {
+async function loadImage(url: string): Promise<ImageBitmap> {
 	const resp = await fetch(url);
 	if (!resp.ok) throw new Error('Failed to fetch image');
 
@@ -55,6 +55,21 @@ async function loadImage(url: string) {
 	console.log('Image bitmap:', image.width, 'x', image.height);
 
 	return image;
+}
+
+async function loadVideo(url: string): Promise<HTMLVideoElement> {
+	const video = document.createElement('video') as HTMLVideoElement;
+	video.src = url;
+	video.muted = true;
+	video.loop = true;
+	video.autoplay = true;
+	video.playsInline = true;
+
+	let resolve: ((value: HTMLVideoElement) => void);
+	const promise = new Promise<HTMLVideoElement>(r => { resolve = r; });
+	video.addEventListener('canplay', () => resolve(video));
+
+	return promise;
 }
 
 function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
