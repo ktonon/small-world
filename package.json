@@ -5,9 +5,10 @@
 	"type": "module",
 	"main": "public/main.js",
 	"scripts": {
+		"clean:model": "cd model && cargo clean",
 		"clean:lib": "cd viewer-lib && cargo clean && rm -rf pkg",
 		"clean:app": "rm -rf dist public/small_world_viewer*",
-		"clean": "run-p clean:lib clean:app",
+		"clean": "run-p clean:model clean:lib clean:app",
 		"build:app": "./scripts/build-app.js",
 		"publish": "./scripts/publish.js",
 		"deploy": "run-s clean deploy:cdk build:app publish",

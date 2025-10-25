@@ -1,6 +1,7 @@
 env.sh
 dist/
 node_modules/
+public/*.png
 public/small_world_viewer*
 viewer-app/build-date.ts
 viewer-lib/pkg/
