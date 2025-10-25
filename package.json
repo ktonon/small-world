@@ -1,0 +1,38 @@
+{
+	"name": "small-world",
+	"version": "0.1.0",
+	"description": "An expansion tectonic model of the Earth",
+	"type": "module",
+	"main": "public/main.js",
+	"scripts": {
+		"clean:lib": "cd viewer-lib && cargo clean && rm -rf pkg",
+		"clean:app": "rm -rf dist public/small_world_viewer*",
+		"clean": "run-p clean:lib clean:app",
+		"build:app": "./scripts/build-app.js",
+		"publish": "./scripts/publish.js",
+		"deploy": "run-s clean deploy:cdk build:app publish",
+		"deploy:cdk": "./scripts/deploy.sh",
+		"lint": "eslint . && cd app && tsc",
+		"start": "./scripts/build-app.js --server"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.27.0",
+		"@types/eslint__js": "^8.42.3",
+		"@types/node": "^22.15.17",
+		"@types/source-map-support": "^0.5.10",
+		"chokidar": "^4.0.3",
+		"esbuild": "^0.25.5",
+		"esbuild-plugin-compress": "^1.0.1",
+		"esbuild-plugin-copy": "^2.1.1",
+		"esbuild-server": "^0.3.0",
+		"eslint": "^9.21.0",
+		"glob": "^10.4.5",
+		"lit": "^3.3.1",
+		"nodemon": "^3.1.7",
+		"npm-run-all": "^4.1.5",
+		"ts-node": "^10.9.2",
+		"tsx": "^4.19.4",
+		"typescript": "^5.8.3",
+		"typescript-eslint": "^8.32.1"
+	}
+}

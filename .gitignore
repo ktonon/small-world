@@ -1,2 +1,6 @@
+env.sh
+dist/
+node_modules/
+public/small_world_viewer*
+viewer-lib/pkg/
 target/
-www/small_world_viewer*

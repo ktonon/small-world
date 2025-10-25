@@ -18,7 +18,7 @@ Run:
 
 ```
 cd model
-cargo run --bin nc_to_png
+cargo run --release --bin nc_to_png
 ```
 
 ## Using the Viewer
@@ -26,8 +26,7 @@ cargo run --bin nc_to_png
 Run:
 
 ```
-./scripts/build.sh
-./scripts/serve.sh
+npm start
 ```
 
-and visit http://localhost:8080/www
+and visit http://localhost:8080/

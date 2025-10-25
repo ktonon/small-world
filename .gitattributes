@@ -1,4 +1,4 @@
 data/age.2020.1.GTS2012.1m.classic.nc filter=lfs diff=lfs merge=lfs -text
 data/age.2020.1.GTS2012.1m.nc filter=lfs diff=lfs merge=lfs -text
-media/age.2020.1.GTS2012.png filter=lfs diff=lfs merge=lfs -text
-media/earth.mp4 filter=lfs diff=lfs merge=lfs -text
+public/age.2020.1.GTS2012.png filter=lfs diff=lfs merge=lfs -text
+public/earth.mp4 filter=lfs diff=lfs merge=lfs -text

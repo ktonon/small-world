@@ -1,13 +1,16 @@
-import init, { Globe } from "./small_world_viewer.js";
+// This import relies on building viewer-lib first
+import init, { Globe } from '../viewer-lib/pkg/small_world_viewer';
 
 const ZOOM_SPEED = 0.02;
 const ROT_SPEED = 0.005;
 const MAX_DIST = 5;
 const MIN_DIST = 1.2;
 
-(async () => {
+bootup();
+
+async function bootup() {
 	await init();
-	const canvas = document.getElementById("globe");
+	const canvas = document.getElementById('globe') as HTMLCanvasElement;
 	canvas.width = canvas.clientWidth * window.devicePixelRatio;
 	canvas.height = canvas.clientHeight * window.devicePixelRatio;
 
@@ -15,9 +18,9 @@ const MIN_DIST = 1.2;
 	setupControls(canvas, globe);
 	enableTouchGestures(canvas, globe);
 
-	const useVideo = true;
+	const useVideo = false;
 	if (useVideo) {
-		const video = document.getElementById("earthVideo");
+		const video = document.getElementById('earthVideo') as HTMLVideoElement;
 		await video.play(); // ensure it’s decoded and running
 
 		globe.set_image_video(video);
@@ -30,7 +33,7 @@ const MIN_DIST = 1.2;
 		video.requestVideoFrameCallback(frame);
 
 	} else {
-		globe.set_image(await loadImage('../media/age.2020.1.GTS2012.png'));
+		globe.set_image(await loadImage('./age.2020.1.GTS2012.png'));
 		function frame() {
 			resizeCanvasToDisplaySize(canvas);
 			globe.render();
@@ -38,22 +41,22 @@ const MIN_DIST = 1.2;
 		}
 		requestAnimationFrame(frame);
 	}
-})();
+}
 
-async function loadImage(url) {
+async function loadImage(url: string) {
 	const resp = await fetch(url);
-	if (!resp.ok) throw new Error("Failed to fetch image");
+	if (!resp.ok) throw new Error('Failed to fetch image');
 
 	const blob = await resp.blob();
-	console.log("blob size:", blob.size, "type:", blob.type);
+	console.log('blob size:', blob.size, 'type:', blob.type);
 
 	const image = await createImageBitmap(blob);
-	console.log("Image bitmap:", image.width, 'x', image.height);
+	console.log('Image bitmap:', image.width, 'x', image.height);
 
 	return image;
 }
 
-function resizeCanvasToDisplaySize(canvas) {
+function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
 	const dpr = window.devicePixelRatio || 1;
 	const displayWidth = Math.floor(canvas.clientWidth * dpr);
 	const displayHeight = Math.floor(canvas.clientHeight * dpr);
@@ -64,7 +67,7 @@ function resizeCanvasToDisplaySize(canvas) {
 	}
 }
 
-function setupControls(canvas, globe) {
+function setupControls(canvas: HTMLCanvasElement, globe: Globe) {
 	if (isTouchCapable()) { return; }
 
 	let dragging = false;
@@ -72,27 +75,27 @@ function setupControls(canvas, globe) {
 	let dist = 2.2;
 	const TWIST_KEY = 0.06; // radians per key press
 
-	canvas.addEventListener("wheel", e => {
+	canvas.addEventListener('wheel', e => {
 		e.preventDefault();
 		const k = 1.0 - Math.sign(e.deltaY) * ZOOM_SPEED; // zoom step
 		dist = Math.min(MAX_DIST, Math.max(MIN_DIST, dist * k));
 		globe.set_distance(dist);
 	}, { passive: false });
 
-	window.addEventListener("keydown", e => {
+	window.addEventListener('keydown', e => {
 		if (e.target !== document.body) return; // avoid typing fields
-		if (e.key === "q" || e.key === "Q") { globe.apply_twist(-TWIST_KEY); }
-		if (e.key === "e" || e.key === "E") { globe.apply_twist(+TWIST_KEY); }
+		if (e.key === 'q' || e.key === 'Q') { globe.apply_twist(-TWIST_KEY); }
+		if (e.key === 'e' || e.key === 'E') { globe.apply_twist(+TWIST_KEY); }
 	});
 
-	canvas.addEventListener("pointerdown", e => {
+	canvas.addEventListener('pointerdown', e => {
 		dragging = true;
 		lastX = e.clientX;
 		lastY = e.clientY;
 		canvas.setPointerCapture(e.pointerId);
 	});
 
-	canvas.addEventListener("pointermove", e => {
+	canvas.addEventListener('pointermove', e => {
 		if (!dragging) return;
 		const dx = e.clientX - lastX;
 		const dy = e.clientY - lastY;
@@ -103,7 +106,7 @@ function setupControls(canvas, globe) {
 		globe.apply_drag(dx, dy, rotSpeed);
 	});
 
-	canvas.addEventListener("pointerup", e => {
+	canvas.addEventListener('pointerup', e => {
 		dragging = false;
 		canvas.releasePointerCapture(e.pointerId);
 	});
@@ -116,17 +119,17 @@ function isTouchCapable() {
 		|| ('ontouchstart' in window);
 }
 
-function enableTouchGestures(canvas, globe, { minDist = MIN_DIST, maxDist = MAX_DIST } = {}) {
+function enableTouchGestures(canvas: HTMLCanvasElement, globe: Globe, { minDist = MIN_DIST, maxDist = MAX_DIST } = {}) {
 	if (!isTouchCapable()) { return; } // do nothing on non-touch
 
 	const touches = new Map();
 	let dragging = false;
 	let lastX = 0, lastY = 0;
-	let twistLast = null;
+	let twistLast: number | null = null;
 	let pinchStart = 0, pinchDist = 0;
 	let dist = 2.2; // keep your current dist source if stored elsewhere
 
-	function onDown(e) {
+	function onDown(e: PointerEvent) {
 		touches.set(e.pointerId, e);
 		if (touches.size === 1) {
 			dragging = true;
@@ -141,7 +144,7 @@ function enableTouchGestures(canvas, globe, { minDist = MIN_DIST, maxDist = MAX_
 		canvas.setPointerCapture(e.pointerId);
 	}
 
-	function onMove(e) {
+	function onMove(e: PointerEvent) {
 		touches.set(e.pointerId, e);
 		if (touches.size === 1 && dragging) {
 			const dx = e.clientX - lastX;
@@ -175,7 +178,7 @@ function enableTouchGestures(canvas, globe, { minDist = MIN_DIST, maxDist = MAX_
 		}
 	}
 
-	function onEnd(e) {
+	function onEnd(e: PointerEvent) {
 		touches.delete(e.pointerId);
 		if (touches.size < 2) {
 			twistLast = null;
@@ -190,10 +193,15 @@ function enableTouchGestures(canvas, globe, { minDist = MIN_DIST, maxDist = MAX_
 	canvas.addEventListener('pointercancel', onEnd);
 }
 
-function vecAngle(a, b) {
+interface ClientPoint {
+	clientX: number
+	clientY: number
+}
+
+function vecAngle(a: ClientPoint, b: ClientPoint) {
 	return Math.atan2(a.clientY - b.clientY, a.clientX - b.clientX);
 }
 
-function pinchLen(a, b) {
+function pinchLen(a: ClientPoint, b: ClientPoint) {
 	return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 }

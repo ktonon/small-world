@@ -151,7 +151,7 @@ impl Globe {
         let w = gl.drawing_buffer_width();
         let h = gl.drawing_buffer_height();
         gl.viewport(0, 0, w, h);
-        gl.clear_color(0.0, 0.0, 0.1, 1.0);
+        gl.clear_color(0.2, 0.2, 0.2, 1.0);
         gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
         gl.enable(GL::DEPTH_TEST);
         gl.disable(GL::CULL_FACE); // TODO: remove
