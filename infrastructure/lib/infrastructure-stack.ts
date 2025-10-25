@@ -55,13 +55,13 @@ export class InfrastructureStack extends Stack {
 		const distro = this.provisionDistribution(siteBucket, cert, viewerReqFunc);
 
 		const zone = route53.HostedZone.fromLookup(this, 'zone', {
-			domainName: this.domainName,
+			domainName: this.rootDomainName,
 		});
 
 		new route53.ARecord(this, 'alias_record', {
 			zone,
 			target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distro)),
-			recordName: this.stage !== 'prod'
+			recordName: this.stage === 'prod'
 				? this.projectName
 				: `${this.stage}.${this.projectName}`,
 		});
