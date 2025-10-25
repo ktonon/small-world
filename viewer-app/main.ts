@@ -1,5 +1,5 @@
-// This import relies on building viewer-lib first
 import init, { Globe } from '../viewer-lib/pkg/small_world_viewer';
+import { buildDate } from './build-date';
 
 const ZOOM_SPEED = 0.02;
 const ROT_SPEED = 0.005;
@@ -9,6 +9,7 @@ const MIN_DIST = 1.2;
 bootup();
 
 async function bootup() {
+	console.log(`Built on ${buildDate}`);
 	await init();
 	const canvas = document.getElementById('globe') as HTMLCanvasElement;
 	canvas.width = canvas.clientWidth * window.devicePixelRatio;

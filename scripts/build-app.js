@@ -13,10 +13,22 @@ import { fileURLToPath } from 'node:url';
 import { getConfig } from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const modelPath = path.join(__dirname, '..', 'model');
 const viewerLibPath = path.join(__dirname, '..', 'viewer-lib');
 const publicPath = path.join(__dirname, '..', 'public');
 
-let rebuildingRust = false;
+/** @type {Record<string, boolean>} */
+const rebuildingRust = {};
+
+const rebuildModel = rustRebuilder(
+	modelPath,
+	'cargo run --release --bin nc_to_png',
+	touchMain);
+
+const rebuildViewerLib = rustRebuilder(
+	viewerLibPath,
+	'wasm-pack build --target=web --no-default-features --release',
+	copyWasm);
 
 const shouldServe = process.argv[2] === '--server';
 
@@ -32,18 +44,24 @@ const config = {
 };
 
 if (shouldServe) {
+	chokidar.watch(modelPath, {
+		ignored: [path.join(modelPath, 'target')],
+	}).on('change', rebuildModel);
+
 	chokidar.watch(viewerLibPath, {
 		ignored: [path.join(viewerLibPath, 'target')],
-	}).on('change', rebuildRust);
+	}).on('change', rebuildViewerLib);
 
-	await rebuildRust();
+	await rebuildModel();
+	await rebuildViewerLib();
 	startServer();
 
 } else {
 	const appConfig = getConfig();
 	console.log(`Building Frontend for ${appConfig.stage}`);
 
-	await rebuildRust();
+	await rebuildModel();
+	await rebuildViewerLib();
 	await build({
 		...config,
 		write: false,
@@ -87,35 +105,37 @@ function getCopyPlugin() {
 }
 
 /**
- * @returns Promise<void>
+ * @param {string} projectPath
+ * @param {string} cmdString
+ * @param {async () => Promise<void>} andThen
+ * @returns {() => Promise<void>}
  */
-function rebuildRust() {
-	if (rebuildingRust) { return; }
+function rustRebuilder(projectPath, cmdString, andThen) {
+	const name = path.basename(projectPath);
+	const [cmd, ...args] = cmdString.split(' ');
+	return () => {
+		if (rebuildingRust[projectPath]) { return; }
 
-	rebuildingRust = true;
-	console.log('🔧 Rebuilding Rust…');
+		rebuildingRust[projectPath] = true;
+		console.log(`🔧 Rebuilding Rust: ${name}…`);
 
-	const build = spawn('wasm-pack', [
-		'build',
-		'--target=web',
-		'--no-default-features',
-		'--release',
-	], {
-		env: { ...process.env, RUST_LOG: 'warn' },
-		stdio: 'inherit',
-		cwd: viewerLibPath,
-	});
+		const build = spawn(cmd, args, {
+			env: { ...process.env, RUST_LOG: 'warn' },
+			stdio: 'inherit',
+			cwd: projectPath,
+		});
 
-	let resolve = null;
-	const promise = new Promise(r => { resolve = r; });
-	build.on('exit', async function onExit() {
-		rebuildingRust = false;
-		console.log('✅ Rust build done');
-		await copyWasm();
-		resolve();
-	});
+		let resolve = null;
+		const promise = new Promise(r => { resolve = r; });
+		build.on('exit', async function onExit() {
+			rebuildingRust[projectPath] = false;
+			console.log(`✅ Rust build done: ${name}`);
+			await andThen();
+			resolve();
+		});
 
-	return promise;
+		return promise;
+	};
 }
 
 async function copyWasm() {
@@ -125,4 +145,8 @@ async function copyWasm() {
 			file,
 			path.join(publicPath, path.basename(file))
 		)));
+}
+
+async function touchMain() {
+	await fs.writeFile(path.join(__dirname, '..', 'viewer-app', 'build-date.ts'), `export const buildDate = '${new Date()}';\n`, { encoding: 'utf-8' });
 }
