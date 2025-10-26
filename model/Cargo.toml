@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+nalgebra = "0.34.1"
 netcdf3 = "0.6"
 image = "0.25"
+num-traits = "0.2.19"
 rayon = "1.11.0"
 webp = "0.3"

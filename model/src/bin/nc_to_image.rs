@@ -1,10 +1,11 @@
 use image::{imageops::FilterType, DynamicImage};
-use small_world_model::image::{combine_images, convert_nc_to_png, load_png, save_webp_lossy};
+use small_world_model::gradients::convert_nc_to_gradient_map;
+use small_world_model::image::{combine_images, load_png, save_webp_lossy};
 use std::error::Error;
 use std::path::Path;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    let img1 = convert_nc_to_png(Path::new("../data/age.2020.1.GTS2012.1m.classic.nc"))?;
+    let img1 = convert_nc_to_gradient_map(Path::new("../data/age.2020.1.GTS2012.1m.classic.nc"))?;
     let img2 = load_png(Path::new("../data/2008_age_of_oceans_plates_fullscale.png"))?;
 
     let (width, height) = (8192, 4096);
