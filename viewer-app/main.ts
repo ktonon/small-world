@@ -183,7 +183,7 @@ function isTouchCapable() {
 function enableTouchGestures(canvas: HTMLCanvasElement, globe: Globe, { minDist = MIN_DIST, maxDist = MAX_DIST } = {}) {
 	if (!isTouchCapable()) { return; } // do nothing on non-touch
 
-	const touches = new Map();
+	const touches = new Map<number, PointerEvent>();
 	let dragging = false;
 	let lastX = 0, lastY = 0;
 	let twistLast: number | null = null;
@@ -217,6 +217,7 @@ function enableTouchGestures(canvas: HTMLCanvasElement, globe: Globe, { minDist 
 			globe.apply_drag(dx, dy, rotSpeed);
 
 		} else if (touches.size === 2) {
+			dragging = false;
 			const [p1, p2] = [...touches.values()];
 
 			// twist (roll)
@@ -240,6 +241,7 @@ function enableTouchGestures(canvas: HTMLCanvasElement, globe: Globe, { minDist 
 	}
 
 	function onEnd(e: PointerEvent) {
+		dragging = false;
 		touches.delete(e.pointerId);
 		if (touches.size < 2) {
 			twistLast = null;
