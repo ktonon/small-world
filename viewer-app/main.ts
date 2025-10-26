@@ -5,6 +5,13 @@ const ZOOM_SPEED = 0.02;
 const ROT_SPEED = 0.005;
 const MAX_DIST = 5;
 const MIN_DIST = 1.2;
+const TWIST_BASE = 0.001; // radians per render frame
+const TWIST_ACCEL = 0.001;
+const TWIST_MAX = 0.06;
+
+type ControlKey = 'q' | 'w' | 'e' | 'a' | 's' | 'd';
+const holdingKey: Record<ControlKey, number> = { q: 0, w: 0, e: 0, a: 0, s: 0, d: 0 };
+const holdingKeyAccel = (key: ControlKey) => { holdingKey[key] = Math.min(TWIST_MAX, holdingKey[key] + TWIST_ACCEL); };
 
 bootup();
 
@@ -22,9 +29,9 @@ async function bootup() {
 	window.addEventListener('resize', () => resizeCanvasToDisplaySize(canvas));
 	resizeCanvasToDisplaySize(canvas);
 
-	const useVideo = false;
+	const useVideo = true;
 	if (useVideo) {
-		const video = await loadVideo('./earth.mp4');
+		const video = await loadVideo('./earth.webm');
 		await video.play();
 		globe.set_image_video(video);
 		renderOnAnimationFrame(globe, () => globe.set_image_video(video));
@@ -38,6 +45,30 @@ async function bootup() {
 function renderOnAnimationFrame(globe: Globe, onFrame?: () => void) {
 	function frame() {
 		onFrame?.();
+		if (holdingKey.q) {
+			globe.apply_twist(-holdingKey.q);
+			holdingKeyAccel('q');
+		}
+		if (holdingKey.e) {
+			globe.apply_twist(holdingKey.e);
+			holdingKeyAccel('e');
+		}
+		if (holdingKey.w) {
+			globe.apply_drag(0, 1, holdingKey.w);
+			holdingKeyAccel('w');
+		}
+		if (holdingKey.s) {
+			globe.apply_drag(0, -1, holdingKey.s);
+			holdingKeyAccel('s');
+		}
+		if (holdingKey.a) {
+			globe.apply_drag(1, 0, holdingKey.a);
+			holdingKeyAccel('a');
+		}
+		if (holdingKey.d) {
+			globe.apply_drag(-1, 0, holdingKey.d);
+			holdingKeyAccel('d');
+		}
 		globe.render();
 		requestAnimationFrame(frame);
 	}
@@ -89,7 +120,6 @@ function setupControls(canvas: HTMLCanvasElement, globe: Globe) {
 	let dragging = false;
 	let lastX = 0, lastY = 0;
 	let dist = 2.2;
-	const TWIST_KEY = 0.06; // radians per key press
 
 	canvas.addEventListener('wheel', e => {
 		e.preventDefault();
@@ -99,9 +129,24 @@ function setupControls(canvas: HTMLCanvasElement, globe: Globe) {
 	}, { passive: false });
 
 	window.addEventListener('keydown', e => {
-		if (e.target !== document.body) return; // avoid typing fields
-		if (e.key === 'q' || e.key === 'Q') { globe.apply_twist(-TWIST_KEY); }
-		if (e.key === 'e' || e.key === 'E') { globe.apply_twist(+TWIST_KEY); }
+		if (e.target !== document.body // avoid typing fields
+			|| !/^[qewsad]$/i.test(e.key)
+		) {
+			return;
+		}
+		const key = e.key.toLocaleLowerCase() as ControlKey;
+		if (!holdingKey[key]) {
+			holdingKey[key] = TWIST_BASE;
+		}
+	});
+	window.addEventListener('keyup', e => {
+		if (e.target !== document.body // avoid typing fields
+			|| !/^[qewsad]$/i.test(e.key)
+		) {
+			return;
+		}
+		const key = e.key.toLocaleLowerCase() as ControlKey;
+		holdingKey[key] = 0;
 	});
 
 	canvas.addEventListener('pointerdown', e => {
