@@ -1,5 +1,5 @@
 use image::{imageops::FilterType, DynamicImage};
-use small_world_model::{combine_images, convert_nc_to_png, load_png};
+use small_world_model::{combine_images, convert_nc_to_png, load_png, save_webp_lossy};
 use std::error::Error;
 use std::path::Path;
 
@@ -13,11 +13,11 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     let img2 = image::imageops::grayscale(&img2);
     let img2 = DynamicImage::ImageLuma8(img2).to_rgb8();
 
-    let png_out = Path::new("../public/age.2020.1.GTS2012.png");
+    let png_out = Path::new("../public/age.2020.1.GTS2012.webp");
     std::fs::create_dir_all(png_out.parent().unwrap())?;
 
     let img = combine_images(img1, img2, 0.5)?;
-    img.save(png_out)?;
+    save_webp_lossy(&img, 50.0, png_out)?;
 
     println!("Saved → {:?}", png_out);
     Ok(())

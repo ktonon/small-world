@@ -1,8 +1,9 @@
-env.sh
 dist/
+env.sh
 node_modules/
-public/*.png
+public/*.webp
 public/small_world_viewer*
+scripts/.cdk-outputs.json
+target/
 viewer-app/build-date.ts
 viewer-lib/pkg/
-target/

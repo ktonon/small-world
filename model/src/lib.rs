@@ -2,7 +2,9 @@ use image::{ImageReader, Rgb, RgbImage};
 use netcdf3::FileReader;
 use rayon::prelude::*;
 use std::error::Error;
+use std::fs;
 use std::path::Path;
+use webp::Encoder;
 
 pub fn convert_nc_to_png(nc_path: &Path) -> Result<RgbImage, Box<dyn Error>> {
     let var_name = "z";
@@ -86,4 +88,12 @@ pub fn combine_images(
         }
     }
     Ok(img1)
+}
+
+pub fn save_webp_lossy(img: &RgbImage, quality: f32, path: &Path) -> std::io::Result<()> {
+    let (w, h) = img.dimensions();
+    // RgbImage data is already RGB8
+    let enc = Encoder::from_rgb(img.as_raw(), w as u32, h as u32);
+    let webp = enc.encode(quality); // 0.0–100.0
+    fs::write(path, &*webp)
 }

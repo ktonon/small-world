@@ -30,7 +30,7 @@ async function bootup() {
 		renderOnAnimationFrame(globe, () => globe.set_image_video(video));
 
 	} else {
-		globe.set_image(await loadImage('./age.2020.1.GTS2012.png'));
+		globe.set_image(await loadImage('./age.2020.1.GTS2012.webp'));
 		renderOnAnimationFrame(globe);
 	}
 }
