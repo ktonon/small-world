@@ -22,7 +22,7 @@ const rebuildingRust = {};
 
 const rebuildModel = rustRebuilder(
 	modelPath,
-	'cargo run --release --bin nc_to_video',
+	'cargo run --release --bin nc_to_png',
 	touchMain);
 
 const rebuildViewerLib = rustRebuilder(

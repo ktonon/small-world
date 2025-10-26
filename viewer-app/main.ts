@@ -29,7 +29,7 @@ async function bootup() {
 	window.addEventListener('resize', () => resizeCanvasToDisplaySize(canvas));
 	resizeCanvasToDisplaySize(canvas);
 
-	const useVideo = true;
+	const useVideo = false;
 	if (useVideo) {
 		const video = await loadVideo('./earth.webm');
 		await video.play();
