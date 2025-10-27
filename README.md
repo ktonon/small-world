@@ -1,6 +1,10 @@
 # Small World
 
-An expansion tectonic model of the Earth
+An expansion tectonic model of the Earth.
+
+This project is a work-in-progress.
+
+[Live Demo](https://smallworld.betweenconcepts.com): Currently showing age gradients
 
 ## Setup
 
