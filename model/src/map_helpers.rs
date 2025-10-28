@@ -22,6 +22,11 @@ pub fn pixel_area_lookup(nx: usize, ny: usize, radius: f32) -> (f32, Vec<f32>) {
     )
 }
 
+pub fn area_of_sphere(radius: f32) -> f32 {
+    use std::f32::consts::PI;
+    4.0 * PI * radius * radius
+}
+
 pub fn par_min_max<T>(data: &[T]) -> (T, T)
 where
     T: Float + Send + Sync,

@@ -1,5 +1,5 @@
 use crate::geometry::{lat_of, lon_of, neighbors_within, GeoGrid};
-use crate::map_helpers::{par_min_max, pixel_area_lookup};
+use crate::map_helpers::{area_of_sphere, par_min_max, pixel_area_lookup};
 use image::{Rgb, RgbImage};
 use nalgebra::{Matrix3, Vector2, Vector3};
 use netcdf3::FileReader;
@@ -10,13 +10,8 @@ use std::path::Path;
 pub fn convert_nc_to_gradient_map(nc_path: &Path) -> Result<RgbImage, Box<dyn Error>> {
     let earth_radius = 6_371_008.8; // meters
     let age_var_name = "z";
-    let lat_var_name = "lat";
-    let lon_var_name = "lon";
-
-    // Open + read metadata
     let mut reader = FileReader::open(nc_path)?;
-    let ds = reader.data_set(); // &DataSet  (metadata only)  (has get_vars, get_var, dim_size, etc.)
-                                // Helpful listing
+    let ds = reader.data_set();
 
     println!("Attributes:");
     for attr in ds.get_global_attrs() {
@@ -27,16 +22,7 @@ pub fn convert_nc_to_gradient_map(nc_path: &Path) -> Result<RgbImage, Box<dyn Er
 
     println!("Variables: {:?}", ds.get_var_names()); // optional
     let age_var = ds.get_var(age_var_name).expect("age variable not found");
-    let lat_var = ds
-        .get_var(lat_var_name)
-        .expect("latitude variable not found");
-    let lon_var = ds
-        .get_var(lon_var_name)
-        .expect("longitude variable not found");
-
     println!("  - age: {} {:?}", age_var.data_type(), age_var.dim_names());
-    println!("  - lat: {} {:?}", lat_var.data_type(), lat_var.dim_names(),);
-    println!("  - lon: {} {:?}", lon_var.data_type(), lon_var.dim_names());
 
     let ny = ds.dim_size(&age_var.dim_names()[0]).unwrap() as usize;
     let nx = ds.dim_size(&age_var.dim_names()[1]).unwrap() as usize;
@@ -47,67 +33,57 @@ pub fn convert_nc_to_gradient_map(nc_path: &Path) -> Result<RgbImage, Box<dyn Er
     };
 
     println!("Grid: {:?}", &grid);
-
     let age_data: Vec<f32> = reader.read_var_f32(age_var_name)?;
-    let lat_data: Vec<f64> = reader.read_var_f64(lat_var_name)?;
-    let lon_data: Vec<f64> = reader.read_var_f64(lon_var_name)?; // -90 to 90
-    let (max_area, area_lookup) = pixel_area_lookup(nx, ny, earth_radius);
-
-    let (min_lat, max_lat) = par_min_max(&lat_data);
-    let (min_lon, max_lon) = par_min_max(&lon_data);
     let (min, max) = par_min_max(&age_data);
     println!(
         "Ranges:
   - age: [{min}, {max}]
-  - lat: [{min_lat}, {max_lat}]
-  - lon: [{min_lon}, {max_lon}]
 "
     );
 
-    // let (min_lat, max_lat) = lat_data.iter().fold(|| (f64::MAX, f64::MIN), |(min, max), &v| ())
-    // Find min and max in parallel (ignoring NaNs)
-    // let (min, max) = age_data
-    //     .par_iter()
-    //     .filter(|v| !v.is_nan())
-    //     .fold(
-    //         || (f32::MAX, f32::MIN),
-    //         |(min, max), &v| (min.min(v), max.max(v)),
-    //     )
-    //     .reduce(|| (f32::MAX, f32::MIN), |a, b| (a.0.min(b.0), a.1.max(b.1)));
+    let (_, area_lookup) = pixel_area_lookup(nx, ny, earth_radius);
 
-    let span = if max > min { max - min } else { 1.0 };
-
-    // Compute all pixels in parallel
-    let pixels: Vec<Rgb<u8>> = age_data
+    let pixels_and_area: Vec<(Rgb<u8>, f32)> = age_data
         .par_iter()
         .enumerate()
         .map(|(i, age)| {
-            let y = i / nx;
-            let x = i % nx;
-            let lon = lon_data[x];
-            let lat = lat_data[y];
             if age.is_nan() {
-                Rgb([0, 0, 0])
+                (Rgb([0, 0, 0]), 0.0)
+            } else if *age < 1000.0 {
+                let y = i / nx;
+                // Distance between parallels:                1852 meters
+                // Distance between meridians at the equator: 1852 meters
+                // Distance between meridians at 45°N:        1309 meters
+                // Distance between meridians at 60°N:         927 meters
+                // Distance between meridians at 80°N:         322 meters
+                // Distance between meridians at 85°N:         162 meters
+                // Distance between meridians at 89°N:          32 meters
+                let neighbors = neighbors_within(&grid, i, 2620.0);
+                let g = gradient_tangent(&grid, i, &neighbors, &age_data).unwrap();
+                let (_, bearing) = gradient_magnitude_bearing(g);
+                let (r, g, b) = gradient_to_rgb(0.0001, bearing, 0.0001);
+                (Rgb([r, g, b]), area_lookup[y])
             } else {
-                let neighbors = neighbors_within(&grid, i, 4000.0);
-                if let Some(g) = gradient_tangent(&grid, i, &neighbors, &age_data) {
-                    let (mag, bearing) = gradient_magnitude_bearing(g);
-                    let (r, g, b) = gradient_to_rgb(100.0, bearing, 100.0);
-                    Rgb([r, g, b])
-                } else {
-                    Rgb([255, 0, 0])
-                }
+                (Rgb([128, 128, 128]), 0.0)
             }
         })
         .collect();
 
     // Convert to image
+    let mut area_to_remove = 0.0;
     let mut img = RgbImage::new(nx as u32, ny as u32);
-    for (i, px) in pixels.into_iter().enumerate() {
+    for (i, (px, area)) in pixels_and_area.into_iter().enumerate() {
+        area_to_remove += area;
         let x = (i % nx) as u32;
         let y = (i / nx) as u32;
         img.put_pixel(x, (ny as u32 - 1) - y, px);
     }
+    let earth_area = area_of_sphere(earth_radius);
+    println!(
+        "area to remove: {} Square Kilometers ({}% of total area)",
+        area_to_remove / 1_000_000.0,
+        area_to_remove / earth_area
+    );
     Ok(img)
 }
 
@@ -213,6 +189,7 @@ pub fn gradient_magnitude_bearing(g: Vector2<f32>) -> (f32, f32) {
 pub fn gradient_to_rgb(mag: f32, bearing: f32, mag_max: f32) -> (u8, u8, u8) {
     // normalize magnitude → [0,1]
     let intensity = (mag / mag_max).clamp(0.0, 1.0);
+    // println!("intensity: {}", intensity);
 
     // convert bearing (radians) to hue [0,1), rotating so 0°=north→blue
     let hue = ((bearing + std::f32::consts::PI * 2.0) % (2.0 * std::f32::consts::PI))
